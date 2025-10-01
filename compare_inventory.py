@@ -54,16 +54,31 @@ def parse_inventory_html(html_file):
     return inventory
 
 
+def get_clean_filename(filepath):
+    """
+    Extract clean filename without extension for column headers
+    Example: 'Inventory - oct1.html' -> 'Inventory-sep28'
+    """
+    # Get filename without extension
+    name = Path(filepath).stem
+    # Replace spaces with hyphens for cleaner look
+    clean_name = name.replace(' ', '-')
+    return clean_name
+
+
 def compare_inventories(old_file, new_file):
     """
     Compare two inventory files and return active products
-    Returns: list of dicts with product details
+    Returns: (active_products, old_filename, new_filename)
     """
-    print(f"📂 Reading old inventory: {old_file}")
+    old_name = get_clean_filename(old_file)
+    new_name = get_clean_filename(new_file)
+    
+    print(f"📂 Reading old inventory: {old_file.name}")
     old_inventory = parse_inventory_html(old_file)
     print(f"   Found {len(old_inventory)} products")
     
-    print(f"📂 Reading new inventory: {new_file}")
+    print(f"📂 Reading new inventory: {new_file.name}")
     new_inventory = parse_inventory_html(new_file)
     print(f"   Found {len(new_inventory)} products")
     
@@ -83,8 +98,8 @@ def compare_inventories(old_file, new_file):
                 active_products.append({
                     'Product Name': product_name,
                     'Warehouse': warehouse,
-                    'Old Expected Stock': old_stock,
-                    'New Expected Stock': new_stock,
+                    old_name: old_stock,
+                    new_name: new_stock,
                     'Sold Products': sold
                 })
     
@@ -93,18 +108,17 @@ def compare_inventories(old_file, new_file):
     
     print(f"✅ Found {len(active_products)} active products (with stock changes)")
     
-    return active_products
+    return active_products, old_name, new_name
 
 
-def save_to_csv(products, output_file):
+def save_to_csv(products, output_file, old_name, new_name):
     """Save products to CSV file"""
     if not products:
         print("⚠️  No active products to save")
         return
     
     with open(output_file, 'w', newline='', encoding='utf-8-sig') as f:
-        fieldnames = ['Product Name', 'Warehouse', 'Old Expected Stock', 
-                     'New Expected Stock', 'Sold Products']
+        fieldnames = ['Product Name', 'Warehouse', old_name, new_name, 'Sold Products']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         
         writer.writeheader()
@@ -122,8 +136,8 @@ def main():
     script_dir = Path(__file__).parent
     
     # You can modify these filenames as needed
-    old_file = script_dir / "Inventory - sep28.html"
-    new_file = script_dir / "Inventory - SEP30.html"
+    old_file = script_dir / "Inventory - SEP30.html"
+    new_file = script_dir / "Inventory - oct1.html"
     output_file = script_dir / "inventory_comparison.csv"
     
     # Check if files exist
@@ -138,10 +152,10 @@ def main():
         return
     
     # Compare inventories
-    active_products = compare_inventories(old_file, new_file)
+    active_products, old_name, new_name = compare_inventories(old_file, new_file)
     
     # Save to CSV
-    save_to_csv(active_products, output_file)
+    save_to_csv(active_products, output_file, old_name, new_name)
     
     # Print summary
     print("\n" + "=" * 60)
@@ -152,7 +166,7 @@ def main():
         for i, product in enumerate(active_products[:5], 1):
             print(f"  {i}. {product['Product Name'][:40]}")
             print(f"     Warehouse: {product['Warehouse']}")
-            print(f"     Sold: {product['Sold Products']} | Remaining: {product['New Expected Stock']}")
+            print(f"     Sold: {product['Sold Products']} | Remaining: {product[new_name]}")
             print()
     
     print("✨ Done! Open the CSV file to view all results.")
