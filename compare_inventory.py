@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Stock Management Inventory Comparison Tool
-Compares two HTML inventory files and outputs active products (products with stock changes)
+Automatically compares the 2 newest HTML inventory files
 """
 
 from bs4 import BeautifulSoup
@@ -57,13 +57,26 @@ def parse_inventory_html(html_file):
 def get_clean_filename(filepath):
     """
     Extract clean filename without extension for column headers
-    Example: 'Inventory - oct1.html' -> 'Inventory-sep28'
+    Example: 'Inventory - sep28.html' -> 'Inventory-sep28'
     """
     # Get filename without extension
     name = Path(filepath).stem
     # Replace spaces with hyphens for cleaner look
     clean_name = name.replace(' ', '-')
     return clean_name
+
+
+def find_html_files(directory):
+    """Find all HTML files and sort by modification time (oldest first)"""
+    html_files = list(Path(directory).glob("*.html"))
+    
+    if len(html_files) == 0:
+        return []
+    
+    # Sort by modification time (oldest to newest)
+    html_files.sort(key=lambda x: x.stat().st_mtime)
+    
+    return html_files
 
 
 def compare_inventories(old_file, new_file):
@@ -135,21 +148,34 @@ def main():
     # Get script directory
     script_dir = Path(__file__).parent
     
-    # You can modify these filenames as needed
-    old_file = script_dir / "Inventory - SEP30.html"
-    new_file = script_dir / "Inventory - oct1.html"
-    output_file = script_dir / "inventory_comparison.csv"
+    # Find all HTML files
+    html_files = find_html_files(script_dir)
     
-    # Check if files exist
-    if not old_file.exists():
-        print(f"❌ Error: Old file not found: {old_file}")
-        print("   Please make sure the file exists in the same directory as this script")
+    if len(html_files) == 0:
+        print("❌ Error: No HTML files found in this directory")
+        print(f"   Looking in: {script_dir}")
+        print("   Please add your inventory HTML files to this folder")
         return
     
-    if not new_file.exists():
-        print(f"❌ Error: New file not found: {new_file}")
-        print("   Please make sure the file exists in the same directory as this script")
+    if len(html_files) == 1:
+        print("❌ Error: Only 1 HTML file found. Need at least 2 files to compare.")
+        print(f"   Found: {html_files[0].name}")
+        print("   Please add another inventory HTML file to compare")
         return
+    
+    # Use the 2 newest files (last 2 in the sorted list)
+    old_file = html_files[-2]  # Second newest (older)
+    new_file = html_files[-1]  # Newest
+    
+    print(f"\n📁 Auto-detected files:")
+    print(f"   OLD: {old_file.name}")
+    print(f"   NEW: {new_file.name}")
+    print()
+    
+    # Generate output filename
+    old_name = get_clean_filename(old_file)
+    new_name = get_clean_filename(new_file)
+    output_file = script_dir / f"comparison_{old_name}_to_{new_name}.csv"
     
     # Compare inventories
     active_products, old_name, new_name = compare_inventories(old_file, new_file)
@@ -164,7 +190,7 @@ def main():
     if active_products:
         print(f"Top 5 Best Sellers:")
         for i, product in enumerate(active_products[:5], 1):
-            print(f"  {i}. {product['Product Name'][:40]}")
+            print(f"  {i}. {product['Product Name'][:50]}")
             print(f"     Warehouse: {product['Warehouse']}")
             print(f"     Sold: {product['Sold Products']} | Remaining: {product[new_name]}")
             print()
