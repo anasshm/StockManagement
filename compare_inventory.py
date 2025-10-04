@@ -66,6 +66,29 @@ def get_clean_filename(filepath):
     return clean_name
 
 
+def extract_date_from_filename(filepath):
+    """
+    Extract just the date part from filename
+    Example: 'Inventory - OCT04.html' -> 'OCT04'
+    Example: 'Inventory - sep28.html' -> 'SEP28'
+    """
+    import re
+    filename = Path(filepath).name
+    
+    # Try to find date pattern (month + day)
+    # Matches: OCT4, OCT04, sep28, SEP-28, etc.
+    pattern = r'(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[\s-]?(\d{1,2})'
+    match = re.search(pattern, filename, re.IGNORECASE)
+    
+    if match:
+        month = match.group(1).upper()
+        day = match.group(2).zfill(2)  # Pad day to 2 digits (4 -> 04)
+        return f"{month}{day}"
+    
+    # Fallback: use full filename if no date pattern found
+    return Path(filepath).stem.replace(' ', '-')
+
+
 def find_html_files(directory):
     """Find all HTML files and sort by modification time (oldest first)"""
     html_files = list(Path(directory).glob("*.html"))
@@ -172,10 +195,13 @@ def main():
     print(f"   NEW: {new_file.name}")
     print()
     
-    # Generate output filename
+    # Generate output filename using the newest file's date
+    new_date = extract_date_from_filename(new_file)
+    output_file = script_dir / f"Stock_{new_date}.csv"
+    
+    # Get clean names for CSV column headers
     old_name = get_clean_filename(old_file)
     new_name = get_clean_filename(new_file)
-    output_file = script_dir / f"comparison_{old_name}_to_{new_name}.csv"
     
     # Compare inventories
     active_products, old_name, new_name = compare_inventories(old_file, new_file)
