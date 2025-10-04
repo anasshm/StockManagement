@@ -22,7 +22,7 @@ class Config:
     DOWNLOAD_DIR = PROJECT_DIR
     
     # Settings
-    SHOW_BROWSER = False  # Set to True to see the browser
+    SHOW_BROWSER = True  # Set to True to see the browser
     ENTRIES_TO_SHOW = 100  # Number of entries per page
     TIMEOUT = 30000  # 30 seconds
     
