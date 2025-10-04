@@ -125,9 +125,23 @@ class CODPartnerAutomation:
                 self.page.select_option('select[name="inventory_length"]', 
                                        str(self.config.ENTRIES_TO_SHOW))
                 
-                # Wait for table to reload
-                time.sleep(3)
+                print("⏳ Waiting 30 seconds for table to fully load...")
+                
+                # Wait for processing indicator to disappear
+                try:
+                    # Wait for "Processing..." to appear then disappear
+                    self.page.wait_for_selector('#inventory_processing[style*="display: block"]', timeout=3000)
+                    print("   Loading data...")
+                    self.page.wait_for_selector('#inventory_processing[style*="display: none"]', timeout=30000)
+                    print("   ✅ Data loaded")
+                except:
+                    print("   No processing indicator found, continuing...")
+                
+                # Additional wait to ensure all data is rendered
+                time.sleep(5)
                 self.page.wait_for_load_state('networkidle', timeout=self.config.TIMEOUT)
+                
+                print("✅ Table fully loaded with all entries")
                 
             except Exception as e:
                 print(f"⚠️  Could not change entries display: {e}")
@@ -142,6 +156,7 @@ class CODPartnerAutomation:
                 filename = f"Inventory - {today}.html"
             
             # Get full page HTML
+            print("💾 Capturing page content...")
             html_content = self.page.content()
             
             # Save to file
