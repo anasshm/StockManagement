@@ -1,0 +1,6 @@
+# Web automation
+playwright==1.40.0
+python-dotenv==1.0.0
+
+# HTML parsing (already have this)
+beautifulsoup4==4.12.2
