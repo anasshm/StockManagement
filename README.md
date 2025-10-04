@@ -1,93 +1,111 @@
 # Stock Management Tool
 
-Simple Python script to compare daily inventory snapshots and identify active products.
+Complete automation for daily stock management with CODPARTNER inventory tracking.
 
 ## What it does
 
-- Compares two HTML inventory files (old date vs new date)
-- Finds **active products** (products where expected stock changed)
-- Calculates **sold products** (old stock - new stock)
-- Sorts by **most sold** (highest first)
-- Outputs a clean CSV file
+- **Automatically downloads** today's inventory from CODPARTNER
+- **Compares** with yesterday's inventory
+- **Finds active products** (products where stock changed)
+- **Calculates sold products** (old stock - new stock)
+- **Sorts by most sold** (highest first)
+- **Creates clean CSV report** (`Stock_OCT04.csv`)
 
-## Requirements
+## Quick Start
 
-Install Python dependencies (only needed once):
+### First Time Setup
 
+See [SETUP.md](SETUP.md) for detailed first-time setup instructions.
+
+Quick version:
 ```bash
-pip install beautifulsoup4
+# 1. Install dependencies
+pip3 install -r requirements.txt
+playwright install chromium
+
+# 2. Set up credentials
+cp .env.example .env
+# Edit .env and add your CODPARTNER credentials
+
+# 3. Done! Ready to use
 ```
 
-## How to Use
+## Daily Usage
 
-### Quick Start
-
-1. Download your inventory HTML files from CODPARTNER
-2. Place them in this folder (same folder as `compare_inventory.py`)
-3. Run the script:
+**One simple command:**
 
 ```bash
-python3 compare_inventory.py
+python3 stock_update.py
 ```
 
-### File Names
+That's it! This will:
+1. ✅ Download today's inventory (headless/invisible)
+2. ✅ Compare with yesterday
+3. ✅ Create your CSV report (`Stock_OCT04.csv`)
 
-The script looks for these files by default:
-- `Inventory - sep28.html` (old)
-- `Inventory - SEP30.html` (new)
+## Output
 
-If your files have different names, either:
-- Rename them to match the default names, OR
-- Edit `compare_inventory.py` lines 123-124 to use your file names
-
-### Output
-
-The script creates `inventory_comparison.csv` with these columns:
+CSV file named `Stock_OCT04.csv` (date changes daily) with:
 - Product Name
 - Warehouse
-- Old Expected Stock (e.g., sep28)
-- New Expected Stock (e.g., sep30)
+- Old Expected Stock (e.g., Inventory-OCT03)
+- New Expected Stock (e.g., Inventory-OCT04)
 - Sold Products (calculated: old - new)
 
-**Results are sorted by Sold Products (highest first)**
+**Results sorted by Sold Products (highest first)**
 
-## Example
+## Example Output
 
 ```bash
-$ python3 compare_inventory.py
+$ python3 stock_update.py
 
 ============================================================
-📊 Stock Management - Inventory Comparison
+🚀 STOCK UPDATE - Complete Daily Report
 ============================================================
-📂 Reading old inventory: Inventory - sep28.html
-   Found 135 products
-📂 Reading new inventory: Inventory - SEP30.html
-   Found 139 products
-✅ Found 45 active products (with stock changes)
-💾 Saved results to: inventory_comparison.csv
 
-============================================================
+📊 STEP 1: Downloading Inventory
+✅ Inventory downloaded successfully
+
+📊 STEP 2: Comparing Inventory
+✅ Found 24 active products
+
 📈 SUMMARY
 ============================================================
 Top 5 Best Sellers:
   1. Fourleaf Bracelet
      Warehouse: Riyadh warehouse
-     Sold: 298 | Remaining: 314
+     Sold: 34 | Remaining: 253
   
   ... (more products)
 
-✨ Done! Open the CSV file to view all results.
-============================================================
+✅ COMPLETE! Your stock report is ready
+📄 Check your Stock_OCT04.csv file
 ```
 
-## Future Enhancements (Ideas for later)
+## Alternative Scripts
 
-- Track trends over time
-- Set low-stock alerts
-- Visualize best sellers
-- Web interface for uploading files
-- Automated daily reports
+- **`stock_update.py`** - Main script (download + compare)
+- **`download_inventory.py`** - Download only (no comparison)
+- **`compare_inventory.py`** - Compare only (no download)
+- **`daily_report.py`** - Legacy combined script
+
+## Settings
+
+Edit `automation/config.py` to customize:
+- `SHOW_BROWSER = False` - Headless (invisible) browser
+- `ENTRIES_TO_SHOW = 100` - Products per page
+- `TIMEOUT = 30000` - Page load timeout
+
+## Future Ideas
+
+- ✅ ~~Automated download~~ (DONE!)
+- ✅ ~~Clean CSV output~~ (DONE!)
+- ⏰ Scheduled automation (cron)
+- 📊 Google Sheets integration
+- 📧 Email notifications
+- 📈 Historical trends
+- ⚠️ Low-stock alerts
 
 ---
 
-**Keep it simple for now. Improve as needed! 🚀**
+**Simple. Automated. Effective. 🚀**

@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+"""
+Complete Stock Update - Download & Compare
+Run this daily to get your stock report
+"""
+
+from automation.codpartner import CODPartnerAutomation
+from automation.utils import clean_old_files
+from pathlib import Path
+import subprocess
+import sys
+
+
+def download_inventory():
+    """Download today's inventory"""
+    print("=" * 60)
+    print("📊 STEP 1: Downloading Inventory")
+    print("=" * 60)
+    
+    try:
+        with CODPartnerAutomation() as bot:
+            bot.login()
+            filepath = bot.download_inventory()
+            clean_old_files(
+                directory=Path(__file__).parent,
+                pattern="Inventory*.html",
+                keep_recent=7
+            )
+        
+        print("✅ Inventory downloaded successfully\n")
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Download failed: {e}")
+        return False
+
+
+def compare_inventory():
+    """Run comparison script"""
+    print("=" * 60)
+    print("📊 STEP 2: Comparing Inventory")
+    print("=" * 60)
+    
+    try:
+        # Run compare_inventory.py
+        script_path = Path(__file__).parent / "compare_inventory.py"
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            capture_output=True,
+            text=True
+        )
+        
+        # Print the output
+        print(result.stdout)
+        
+        if result.returncode != 0:
+            print(f"❌ Comparison failed: {result.stderr}")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Comparison failed: {e}")
+        return False
+
+
+def main():
+    print("\n" + "=" * 60)
+    print("🚀 STOCK UPDATE - Complete Daily Report")
+    print("=" * 60)
+    print()
+    
+    # Step 1: Download
+    if not download_inventory():
+        print("\n❌ FAILED at download step")
+        sys.exit(1)
+    
+    # Step 2: Compare
+    if not compare_inventory():
+        print("\n❌ FAILED at comparison step")
+        sys.exit(1)
+    
+    # Success!
+    print("\n" + "=" * 60)
+    print("✅ COMPLETE! Your stock report is ready")
+    print("=" * 60)
+    print()
+    print("📄 Check your Stock_*.csv file for today's results")
+    print()
+
+
+if __name__ == "__main__":
+    main()
+
