@@ -1,29 +1,44 @@
 #!/bin/bash
-echo "============================================================"
-echo "🚀 CODPARTNER Automation Setup"
-echo "============================================================"
 
-# Install Python dependencies
+echo "============================================================"
+echo "🚀 Stock Management - Daily Automation Setup"
+echo "============================================================"
 echo ""
-echo "📦 Installing Python packages..."
-pip3 install -r requirements.txt
 
-# Install Playwright browsers
-echo ""
-echo "🌐 Installing Playwright browsers..."
-playwright install chromium
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PLIST_FILE="$SCRIPT_DIR/com.stockmanagement.daily.plist"
+DEST_PLIST="$HOME/Library/LaunchAgents/com.stockmanagement.daily.plist"
+
+# Create LaunchAgents directory if it doesn't exist
+mkdir -p "$HOME/Library/LaunchAgents"
+
+# Copy the plist file
+echo "📋 Installing automation..."
+cp "$PLIST_FILE" "$DEST_PLIST"
+
+# Load the launch agent
+echo "⚙️  Activating daily automation..."
+launchctl unload "$DEST_PLIST" 2>/dev/null  # Unload if already loaded
+launchctl load "$DEST_PLIST"
 
 echo ""
 echo "============================================================"
-echo "✅ Installation Complete!"
+echo "✅ Automation Installed!"
 echo "============================================================"
 echo ""
-echo "📝 Next Steps:"
-echo "1. Create your .env file with credentials:"
-echo "   cp .env.example .env"
-echo "   # Then edit .env and add your credentials"
+echo "📊 How it works:"
+echo "   - Runs ONCE every 24 hours after you log in"
+echo "   - Downloads today's inventory"
+echo "   - Compares with yesterday"
+echo "   - Creates Stock_*.csv report"
 echo ""
-echo "2. Run the automation:"
-echo "   python3 download_inventory.py"
+echo "📁 Logs saved to:"
+echo "   $SCRIPT_DIR/logs/"
+echo ""
+echo "🔧 To disable automation:"
+echo "   ./disable_automation.sh"
+echo ""
+echo "🔧 To manually run anytime:"
+echo "   python3 stock_update.py"
 echo ""
 echo "============================================================"

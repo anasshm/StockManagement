@@ -4,6 +4,10 @@
 # CSV output files (generated reports)
 *.csv
 
+# Logs
+logs/
+*.log
+
 # Python cache
 __pycache__/
 *.py[cod]
