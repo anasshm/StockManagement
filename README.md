@@ -32,16 +32,31 @@ cp .env.example .env
 
 ## Daily Usage
 
-**One simple command:**
+### Automatic (Runs Hourly)
+
+The automation **runs automatically** in the background!
+
+- ✅ **Runs every hour** - Checks if today's report needs to be created
+- ✅ **Runs at login** - Also triggers when you log in to your Mac
+- ✅ **Smart checking**: Only downloads if today's file doesn't exist yet
+- ✅ **No duplicates**: Won't re-run if today's files already exist
+- ✅ **Background operation**: Runs invisibly, no browser windows
+
+Your daily report is ready automatically - just check for today's CSV file!
+
+### Manual Run
+
+You can also run it manually anytime:
 
 ```bash
 python3 stock_update.py
 ```
 
-That's it! This will:
-1. ✅ Download today's inventory (headless/invisible)
-2. ✅ Compare with yesterday
-3. ✅ Create your CSV report (`Stock_OCT04.csv`)
+This will:
+1. ✅ Check if today's report already exists (skips if found)
+2. ✅ Download today's inventory (headless/invisible)
+3. ✅ Compare with yesterday
+4. ✅ Create your CSV report (`Stock_OCT07.csv`)
 
 ## Output
 
@@ -96,11 +111,33 @@ Edit `automation/config.py` to customize:
 - `ENTRIES_TO_SHOW = 100` - Products per page
 - `TIMEOUT = 30000` - Page load timeout
 
+## Automation Details
+
+The script automatically runs at login via macOS LaunchAgent:
+- **Service**: `com.stockmanagement.daily`
+- **Config**: `~/Library/LaunchAgents/com.stockmanagement.daily.plist`
+- **Logs**: `logs/stock_update.log` and `logs/stock_update_error.log`
+
+To check automation status:
+```bash
+launchctl list com.stockmanagement.daily
+```
+
+To disable automation:
+```bash
+launchctl unload ~/Library/LaunchAgents/com.stockmanagement.daily.plist
+```
+
+To re-enable automation:
+```bash
+launchctl load ~/Library/LaunchAgents/com.stockmanagement.daily.plist
+```
+
 ## Future Ideas
 
 - ✅ ~~Automated download~~ (DONE!)
 - ✅ ~~Clean CSV output~~ (DONE!)
-- ⏰ Scheduled automation (cron)
+- ✅ ~~Scheduled automation~~ (DONE! Runs at login)
 - 📊 Google Sheets integration
 - 📧 Email notifications
 - 📈 Historical trends

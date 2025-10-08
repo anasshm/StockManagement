@@ -21,7 +21,7 @@
     <string>/Users/zak/Downloads/Stock management/logs/stock_update_error.log</string>
     
     <key>StartInterval</key>
-    <integer>86400</integer>
+    <integer>3600</integer>
     
     <key>RunAtLoad</key>
     <true/>

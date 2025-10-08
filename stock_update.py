@@ -7,6 +7,7 @@ Run this daily to get your stock report
 from automation.codpartner import CODPartnerAutomation
 from automation.utils import clean_old_files
 from pathlib import Path
+from datetime import datetime
 import subprocess
 import sys
 
@@ -65,6 +66,26 @@ def compare_inventory():
 
 
 def main():
+    # Check if today's files already exist
+    today = datetime.now().strftime('%b%d').upper()
+    if today.startswith('OCT'):
+        today = 'OCT' + today[3:]
+    
+    project_dir = Path(__file__).parent
+    today_csv = project_dir / f"Stock_{today}.csv"
+    today_html = project_dir / f"Inventory - {today}.html"
+    
+    if today_csv.exists() and today_html.exists():
+        print("\n" + "=" * 60)
+        print("✅ Today's report already exists!")
+        print("=" * 60)
+        print(f"📄 {today_csv.name}")
+        print(f"📄 {today_html.name}")
+        print("\nSkipping download. Delete these files to force a new download.")
+        print("=" * 60)
+        print()
+        sys.exit(0)
+    
     print("\n" + "=" * 60)
     print("🚀 STOCK UPDATE - Complete Daily Report")
     print("=" * 60)
