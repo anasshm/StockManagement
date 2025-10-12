@@ -102,25 +102,33 @@ def find_html_files(directory):
     return html_files
 
 
-def compare_inventories(old_file, new_file):
+def compare_inventories(files):
     """
-    Compare two inventory files and return active products
-    Returns: (active_products, old_filename, new_filename)
+    Compare multiple inventory files and return active products with history
+    Returns: (active_products, date_columns)
     """
-    old_name = get_clean_filename(old_file)
-    new_name = get_clean_filename(new_file)
+    # Parse all files and store inventories
+    inventories = []
+    date_columns = []
     
-    print(f"📂 Reading old inventory: {old_file.name}")
-    old_inventory = parse_inventory_html(old_file)
-    print(f"   Found {len(old_inventory)} products")
+    for file in files:
+        print(f"📂 Reading inventory: {file.name}")
+        inventory = parse_inventory_html(file)
+        print(f"   Found {len(inventory)} products")
+        
+        date = extract_date_from_filename(file)
+        inventories.append({'date': date, 'data': inventory})
+        date_columns.append(date)
     
-    print(f"📂 Reading new inventory: {new_file.name}")
-    new_inventory = parse_inventory_html(new_file)
-    print(f"   Found {len(new_inventory)} products")
+    # Get the last two inventories for filtering (today vs yesterday)
+    old_inventory = inventories[-2]['data']
+    new_inventory = inventories[-1]['data']
+    old_date = inventories[-2]['date']
+    new_date = inventories[-1]['date']
     
     active_products = []
     
-    # Find products that exist in both files
+    # Find products that exist in both last files (filtering logic)
     for key, old_stock in old_inventory.items():
         product_name, warehouse = key
         
@@ -131,30 +139,43 @@ def compare_inventories(old_file, new_file):
             if old_stock != new_stock:
                 sold = old_stock - new_stock
                 
-                active_products.append({
+                # Build product entry with history
+                product_entry = {
                     'Product Name': product_name,
                     'Warehouse': warehouse,
-                    old_name: old_stock,
-                    new_name: new_stock,
-                    'Sold Products': sold
-                })
+                }
+                
+                # Add stock data for each day in history
+                for inv in inventories:
+                    date = inv['date']
+                    if key in inv['data']:
+                        product_entry[date] = inv['data'][key]
+                    else:
+                        product_entry[date] = '-'
+                
+                # Add sold products (today vs yesterday)
+                product_entry['Sold Products'] = sold
+                
+                active_products.append(product_entry)
     
     # Sort by Sold Products (highest first)
     active_products.sort(key=lambda x: x['Sold Products'], reverse=True)
     
     print(f"✅ Found {len(active_products)} active products (with stock changes)")
     
-    return active_products, old_name, new_name
+    return active_products, date_columns
 
 
-def save_to_csv(products, output_file, old_name, new_name):
-    """Save products to CSV file"""
+def save_to_csv(products, output_file, date_columns):
+    """Save products to CSV file with history columns"""
     if not products:
         print("⚠️  No active products to save")
         return
     
+    # Build fieldnames: Product Name, Warehouse, date columns..., Sold Products
+    fieldnames = ['Product Name', 'Warehouse'] + date_columns + ['Sold Products']
+    
     with open(output_file, 'w', newline='', encoding='utf-8-sig') as f:
-        fieldnames = ['Product Name', 'Warehouse', old_name, new_name, 'Sold Products']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         
         writer.writeheader()
@@ -186,28 +207,24 @@ def main():
         print("   Please add another inventory HTML file to compare")
         return
     
-    # Use the 2 newest files (last 2 in the sorted list)
-    old_file = html_files[-2]  # Second newest (older)
-    new_file = html_files[-1]  # Newest
+    # Use up to the last 7 files (or all if less than 7)
+    files_to_use = html_files[-7:] if len(html_files) >= 7 else html_files
     
-    print(f"\n📁 Auto-detected files:")
-    print(f"   OLD: {old_file.name}")
-    print(f"   NEW: {new_file.name}")
+    print(f"\n📁 Using {len(files_to_use)} file(s) for history:")
+    for file in files_to_use:
+        print(f"   - {file.name}")
     print()
     
     # Generate output filename using the newest file's date
+    new_file = files_to_use[-1]
     new_date = extract_date_from_filename(new_file)
     output_file = script_dir / f"Stock_{new_date}.csv"
     
-    # Get clean names for CSV column headers
-    old_name = get_clean_filename(old_file)
-    new_name = get_clean_filename(new_file)
-    
-    # Compare inventories
-    active_products, old_name, new_name = compare_inventories(old_file, new_file)
+    # Compare inventories with history
+    active_products, date_columns = compare_inventories(files_to_use)
     
     # Save to CSV
-    save_to_csv(active_products, output_file, old_name, new_name)
+    save_to_csv(active_products, output_file, date_columns)
     
     # Print summary
     print("\n" + "=" * 60)
@@ -215,10 +232,11 @@ def main():
     print("=" * 60)
     if active_products:
         print(f"Top 5 Best Sellers:")
+        newest_date = date_columns[-1]
         for i, product in enumerate(active_products[:5], 1):
             print(f"  {i}. {product['Product Name'][:50]}")
             print(f"     Warehouse: {product['Warehouse']}")
-            print(f"     Sold: {product['Sold Products']} | Remaining: {product[new_name]}")
+            print(f"     Sold: {product['Sold Products']} | Remaining: {product[newest_date]}")
             print()
     
     print("✨ Done! Open the CSV file to view all results.")
