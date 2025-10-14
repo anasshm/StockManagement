@@ -65,6 +65,60 @@ def compare_inventory():
         return False
 
 
+def download_orders():
+    """Download today's orders"""
+    print("=" * 60)
+    print("📦 STEP 3: Downloading Orders")
+    print("=" * 60)
+    
+    try:
+        with CODPartnerAutomation() as bot:
+            bot.login()
+            filepath = bot.download_orders()
+            clean_old_files(
+                directory=Path(__file__).parent,
+                pattern="Orders*.html",
+                keep_recent=7
+            )
+        
+        print("✅ Orders downloaded successfully\n")
+        return True
+        
+    except Exception as e:
+        print(f"\n⚠️  Orders download failed: {e}")
+        print("   Continuing with inventory report...")
+        return False
+
+
+def process_orders():
+    """Run orders processing script"""
+    print("=" * 60)
+    print("📦 STEP 4: Processing Orders (Not Available Status)")
+    print("=" * 60)
+    
+    try:
+        # Run compare_orders.py
+        script_path = Path(__file__).parent / "compare_orders.py"
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            capture_output=True,
+            text=True
+        )
+        
+        # Print the output
+        print(result.stdout)
+        
+        if result.returncode != 0:
+            print(f"⚠️  Orders processing had issues: {result.stderr}")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n⚠️  Orders processing failed: {e}")
+        return False
+
+
 def main():
     # Check if today's files already exist
     today = datetime.now().strftime('%b%d').upper()
@@ -101,12 +155,21 @@ def main():
         print("\n❌ FAILED at comparison step")
         sys.exit(1)
     
+    # Step 3: Download Orders (non-critical, continues on failure)
+    orders_downloaded = download_orders()
+    
+    # Step 4: Process Orders (only if download succeeded)
+    if orders_downloaded:
+        process_orders()
+    
     # Success!
     print("\n" + "=" * 60)
     print("✅ COMPLETE! Your stock report is ready")
     print("=" * 60)
     print()
     print("📄 Check your Stock_*.csv file for today's results")
+    if orders_downloaded:
+        print("📄 Check your Orders_Not_Available_*.csv for orders needing attention")
     print()
 
 

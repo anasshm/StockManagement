@@ -16,6 +16,7 @@ class Config:
     BASE_URL = 'https://app.codpartner.com'
     LOGIN_URL = f'{BASE_URL}/login'
     INVENTORY_URL = f'{BASE_URL}/inventory'
+    ORDERS_URL = f'{BASE_URL}/orders'
     
     # Paths
     PROJECT_DIR = Path(__file__).parent.parent
