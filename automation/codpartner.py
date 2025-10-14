@@ -270,26 +270,44 @@ class CODPartnerAutomation:
                 print("   Continuing anyway...")
             
             # Change to show 100 entries
-            print(f"⚙️  Setting to show 100 entries")
+            print(f"⚙️  Setting to show {self.config.ENTRIES_TO_SHOW} entries")
             try:
-                # Wait for any select dropdown to be available
-                self.page.wait_for_selector('select', timeout=5000)
-                
-                # Find the select dropdown for entries and set to 100
-                selects = self.page.query_selector_all('select')
-                for select in selects:
+                # Wait for the dropdown - analytics page uses different name
+                # Try multiple possible selectors
+                dropdown_found = False
+                for selector in ['select[name="products_length"]', 'select']:
                     try:
-                        # Try to select 100 option
-                        self.page.select_option(select, '100')
-                        print("✅ Set to 100 entries")
+                        self.page.wait_for_selector(selector, timeout=5000)
+                        dropdown_found = True
                         break
                     except:
                         continue
                 
-                print("⏳ Waiting for table to reload...")
-                time.sleep(5)
-                self.page.wait_for_load_state('networkidle', timeout=self.config.TIMEOUT)
-                print("✅ Table reloaded")
+                if dropdown_found:
+                    # Select 100 entries
+                    self.page.select_option(selector, str(self.config.ENTRIES_TO_SHOW))
+                    
+                    print("⏳ Waiting 30 seconds for table to fully load...")
+                    
+                    # Wait for processing indicator to disappear (similar to inventory)
+                    try:
+                        # Wait for "Processing..." to appear then disappear
+                        self.page.wait_for_selector('#products_processing[style*="display: block"]', timeout=3000)
+                        print("   Loading data...")
+                        self.page.wait_for_selector('#products_processing[style*="display: none"]', timeout=30000)
+                        print("   ✅ Data loaded")
+                    except:
+                        print("   No processing indicator found, waiting anyway...")
+                        # Even without indicator, wait for the data to load
+                        time.sleep(10)
+                    
+                    # Additional wait to ensure all data is rendered
+                    time.sleep(5)
+                    self.page.wait_for_load_state('networkidle', timeout=self.config.TIMEOUT)
+                    
+                    print("✅ Table fully loaded with all entries")
+                else:
+                    print("⚠️  Could not find entries dropdown")
                 
             except Exception as e:
                 print(f"⚠️  Could not change entries display: {e}")
