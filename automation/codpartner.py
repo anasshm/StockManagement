@@ -235,6 +235,89 @@ class CODPartnerAutomation:
             print(f"❌ Orders download failed: {e}")
             raise
     
+    def download_analytics(self, country="Saudi arabia", filename: str = None):
+        """Download product analytics for specified country"""
+        print(f"📊 Downloading analytics from {self.config.ANALYTICS_URL}")
+        
+        try:
+            # Navigate to analytics page
+            self.page.goto(self.config.ANALYTICS_URL, wait_until='domcontentloaded')
+            time.sleep(3)
+            self.page.wait_for_load_state('networkidle', timeout=self.config.TIMEOUT)
+            
+            # Click on country button
+            print(f"🇸🇦 Selecting {country}...")
+            try:
+                # Click on the country button (e.g., "Saudi arabia")
+                self.page.click(f'text="{country}"')
+                print(f"✅ Clicked {country}")
+                
+                # Wait for processing to complete
+                print("⏳ Waiting for data processing...")
+                time.sleep(3)
+                
+                # Wait for processing overlay to disappear
+                try:
+                    self.page.wait_for_selector('text="Processing..."', state='hidden', timeout=10000)
+                    print("   ✅ Processing complete")
+                except:
+                    print("   No processing indicator found, continuing...")
+                
+                time.sleep(2)
+                
+            except Exception as e:
+                print(f"⚠️  Error selecting country: {e}")
+                print("   Continuing anyway...")
+            
+            # Change to show 100 entries
+            print(f"⚙️  Setting to show 100 entries")
+            try:
+                # Wait for any select dropdown to be available
+                self.page.wait_for_selector('select', timeout=5000)
+                
+                # Find the select dropdown for entries and set to 100
+                selects = self.page.query_selector_all('select')
+                for select in selects:
+                    try:
+                        # Try to select 100 option
+                        self.page.select_option(select, '100')
+                        print("✅ Set to 100 entries")
+                        break
+                    except:
+                        continue
+                
+                print("⏳ Waiting for table to reload...")
+                time.sleep(5)
+                self.page.wait_for_load_state('networkidle', timeout=self.config.TIMEOUT)
+                print("✅ Table reloaded")
+                
+            except Exception as e:
+                print(f"⚠️  Could not change entries display: {e}")
+                print("   Continuing with default view...")
+            
+            # Generate filename if not provided
+            if not filename:
+                today = datetime.now().strftime('%b%d').upper()
+                if today.startswith('OCT'):
+                    today = 'OCT' + today[3:]
+                filename = f"Analytics_Products_Saudi_{today}.html"
+            
+            # Get full page HTML
+            print("💾 Capturing page content...")
+            html_content = self.page.content()
+            
+            # Save to file
+            filepath = self.config.DOWNLOAD_DIR / filename
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            print(f"💾 Saved to: {filepath}")
+            return filepath
+            
+        except Exception as e:
+            print(f"❌ Analytics download failed: {e}")
+            raise
+    
     def download_with_date_range(self, start_date: str, end_date: str):
         """
         Download data with custom date range

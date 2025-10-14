@@ -17,6 +17,7 @@ class Config:
     LOGIN_URL = f'{BASE_URL}/login'
     INVENTORY_URL = f'{BASE_URL}/inventory'
     ORDERS_URL = f'{BASE_URL}/orders'
+    ANALYTICS_URL = f'{BASE_URL}/reports/analytics/products'
     
     # Paths
     PROJECT_DIR = Path(__file__).parent.parent
