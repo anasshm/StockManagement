@@ -36,24 +36,32 @@ def parse_analytics_html(html_file):
                 continue
             
             # Column 1: Leads
-            leads = tds[1].get_text(strip=True)
+            leads_text = tds[1].get_text(strip=True)
             
             # Column 2: Confirmed
-            confirmed = tds[2].get_text(strip=True)
-            
-            # Column 4: Conf.Rate
-            conf_rate = tds[4].get_text(strip=True)
+            confirmed_text = tds[2].get_text(strip=True)
             
             # Column 9: Deliv.Rate (Delivery Rate)
             deliv_rate = tds[9].get_text(strip=True)
             
             # Only add if we have valid data
-            if leads and confirmed:
+            if leads_text and confirmed_text:
+                # Calculate confirmation rate: (Confirmed / Leads) * 100
+                try:
+                    leads = int(leads_text)
+                    confirmed = int(confirmed_text)
+                    if leads > 0:
+                        conf_rate = f"{(confirmed / leads * 100):.2f}%"
+                    else:
+                        conf_rate = "0%"
+                except (ValueError, ZeroDivisionError):
+                    conf_rate = "N/A"
+                
                 products.append({
                     'Country': 'Saudi Arabia',
                     'Product Name': product_name,
-                    'Leads': leads,
-                    'Confirmed': confirmed,
+                    'Leads': leads_text,
+                    'Confirmed': confirmed_text,
                     'Conf.Rate': conf_rate,
                     'Delivery Rate': deliv_rate
                 })
