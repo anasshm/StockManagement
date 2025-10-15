@@ -121,48 +121,69 @@ def compare_inventories(files):
         inventories.append({'date': date, 'data': inventory})
         date_columns.append(date)
     
-    # Get the last two inventories for filtering (today vs yesterday)
-    old_inventory = inventories[-2]['data']
-    new_inventory = inventories[-1]['data']
-    old_date = inventories[-2]['date']
-    new_date = inventories[-1]['date']
+    # Get today's and yesterday's inventory for sold calculation
+    today_inventory = inventories[-1]['data']
+    yesterday_inventory = inventories[-2]['data']
     
     active_products = []
     
-    # Find products that exist in both last files (filtering logic)
-    for key, old_stock in old_inventory.items():
+    # Find all unique products across all inventories
+    all_product_keys = set()
+    for inv in inventories:
+        all_product_keys.update(inv['data'].keys())
+    
+    # Check each product to see if it had any sales in the last 7 days
+    for key in all_product_keys:
         product_name, warehouse = key
         
-        if key in new_inventory:
-            new_stock = new_inventory[key]
+        # Check if product had any stock changes across the 7 days
+        had_sales = False
+        stock_values = []
+        
+        for inv in inventories:
+            if key in inv['data']:
+                stock_values.append(inv['data'][key])
+            else:
+                stock_values.append(None)
+        
+        # Check if stock decreased at any point (indicating sales)
+        for i in range(len(stock_values) - 1):
+            if stock_values[i] is not None and stock_values[i+1] is not None:
+                if stock_values[i] > stock_values[i+1]:  # Stock decreased = sales
+                    had_sales = True
+                    break
+        
+        # Only include products that had sales in the last 7 days
+        if had_sales:
+            # Calculate sold products as today vs yesterday
+            if key in yesterday_inventory and key in today_inventory:
+                sold = yesterday_inventory[key] - today_inventory[key]
+            else:
+                sold = 0
             
-            # Only include if stock changed (active product)
-            if old_stock != new_stock:
-                sold = old_stock - new_stock
-                
-                # Build product entry with history
-                product_entry = {
-                    'Product Name': product_name,
-                    'Warehouse': warehouse,
-                }
-                
-                # Add stock data for each day in history
-                for inv in inventories:
-                    date = inv['date']
-                    if key in inv['data']:
-                        product_entry[date] = inv['data'][key]
-                    else:
-                        product_entry[date] = '-'
-                
-                # Add sold products (today vs yesterday)
-                product_entry['Sold Products'] = sold
-                
-                active_products.append(product_entry)
+            # Build product entry with history
+            product_entry = {
+                'Product Name': product_name,
+                'Warehouse': warehouse,
+            }
+            
+            # Add stock data for each day in history
+            for inv in inventories:
+                date = inv['date']
+                if key in inv['data']:
+                    product_entry[date] = inv['data'][key]
+                else:
+                    product_entry[date] = '-'
+            
+            # Add sold products (today vs yesterday)
+            product_entry['Sold Products'] = sold
+            
+            active_products.append(product_entry)
     
     # Sort by Sold Products (highest first)
     active_products.sort(key=lambda x: x['Sold Products'], reverse=True)
     
-    print(f"✅ Found {len(active_products)} active products (with stock changes)")
+    print(f"✅ Found {len(active_products)} active products (with sales in last 7 days)")
     
     return active_products, date_columns
 
