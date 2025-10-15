@@ -90,8 +90,9 @@ def extract_date_from_filename(filepath):
 
 
 def find_html_files(directory):
-    """Find all HTML files and sort by modification time (oldest first)"""
-    html_files = list(Path(directory).glob("*.html"))
+    """Find all inventory HTML files and sort by modification time (oldest first)"""
+    # Only match inventory files, not orders or analytics
+    html_files = list(Path(directory).glob("Inventory*.html"))
     
     if len(html_files) == 0:
         return []
