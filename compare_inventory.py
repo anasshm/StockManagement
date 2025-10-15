@@ -146,14 +146,14 @@ def compare_inventories(files):
             else:
                 stock_values.append(None)
         
-        # Check if stock decreased at any point (indicating sales)
+        # Check if stock changed at any point (sales or restocking)
         for i in range(len(stock_values) - 1):
             if stock_values[i] is not None and stock_values[i+1] is not None:
-                if stock_values[i] > stock_values[i+1]:  # Stock decreased = sales
+                if stock_values[i] != stock_values[i+1]:  # Any stock change
                     had_sales = True
                     break
         
-        # Only include products that had sales in the last 7 days
+        # Only include products that had any stock changes in the last 7 days
         if had_sales:
             # Calculate sold products as today vs yesterday
             if key in yesterday_inventory and key in today_inventory:
@@ -183,7 +183,7 @@ def compare_inventories(files):
     # Sort by Sold Products (highest first)
     active_products.sort(key=lambda x: x['Sold Products'], reverse=True)
     
-    print(f"✅ Found {len(active_products)} active products (with sales in last 7 days)")
+    print(f"✅ Found {len(active_products)} active products (with stock changes in last 7 days)")
     
     return active_products, date_columns
 
