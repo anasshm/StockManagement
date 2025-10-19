@@ -103,99 +103,58 @@ def find_html_files(directory):
     return html_files
 
 
-def compare_inventories(files):
+def compare_inventories(old_file, new_file):
     """
-    Compare multiple inventory files and return active products with history
-    Returns: (active_products, date_columns)
+    Compare two inventory files and return active products (simple daily comparison)
+    Returns: (active_products, old_date, new_date)
     """
-    # Parse all files and store inventories
-    inventories = []
-    date_columns = []
+    old_date = extract_date_from_filename(old_file)
+    new_date = extract_date_from_filename(new_file)
     
-    for file in files:
-        print(f"📂 Reading inventory: {file.name}")
-        inventory = parse_inventory_html(file)
-        print(f"   Found {len(inventory)} products")
-        
-        date = extract_date_from_filename(file)
-        inventories.append({'date': date, 'data': inventory})
-        date_columns.append(date)
+    print(f"📂 Reading old inventory: {old_file.name}")
+    old_inventory = parse_inventory_html(old_file)
+    print(f"   Found {len(old_inventory)} products")
     
-    # Get today's and yesterday's inventory for sold calculation
-    today_inventory = inventories[-1]['data']
-    yesterday_inventory = inventories[-2]['data']
+    print(f"📂 Reading new inventory: {new_file.name}")
+    new_inventory = parse_inventory_html(new_file)
+    print(f"   Found {len(new_inventory)} products")
     
     active_products = []
     
-    # Find all unique products across all inventories
-    all_product_keys = set()
-    for inv in inventories:
-        all_product_keys.update(inv['data'].keys())
-    
-    # Check each product to see if it had any sales in the last 7 days
-    for key in all_product_keys:
+    # Find products that exist in both files
+    for key, old_stock in old_inventory.items():
         product_name, warehouse = key
         
-        # Check if product had any stock changes across the 7 days
-        had_sales = False
-        stock_values = []
-        
-        for inv in inventories:
-            if key in inv['data']:
-                stock_values.append(inv['data'][key])
-            else:
-                stock_values.append(None)
-        
-        # Check if stock changed at any point (sales or restocking)
-        for i in range(len(stock_values) - 1):
-            if stock_values[i] is not None and stock_values[i+1] is not None:
-                if stock_values[i] != stock_values[i+1]:  # Any stock change
-                    had_sales = True
-                    break
-        
-        # Only include products that had any stock changes in the last 7 days
-        if had_sales:
-            # Calculate sold products as today vs yesterday
-            if key in yesterday_inventory and key in today_inventory:
-                sold = yesterday_inventory[key] - today_inventory[key]
-            else:
-                sold = 0
+        if key in new_inventory:
+            new_stock = new_inventory[key]
             
-            # Build product entry with history
-            product_entry = {
-                'Product Name': product_name,
-                'Warehouse': warehouse,
-            }
-            
-            # Add stock data for each day in history
-            for inv in inventories:
-                date = inv['date']
-                if key in inv['data']:
-                    product_entry[date] = inv['data'][key]
-                else:
-                    product_entry[date] = '-'
-            
-            # Add sold products (today vs yesterday)
-            product_entry['Sold Products'] = sold
-            
-            active_products.append(product_entry)
+            # Only include if stock changed (active product)
+            if old_stock != new_stock:
+                sold = old_stock - new_stock
+                
+                active_products.append({
+                    'Product Name': product_name,
+                    'Warehouse': warehouse,
+                    old_date: old_stock,
+                    new_date: new_stock,
+                    'Sold Products': sold
+                })
     
     # Sort by Sold Products (highest first)
     active_products.sort(key=lambda x: x['Sold Products'], reverse=True)
     
-    print(f"✅ Found {len(active_products)} active products (with stock changes in last 7 days)")
+    print(f"✅ Found {len(active_products)} active products (with stock changes)")
     
-    return active_products, date_columns
+    return active_products, old_date, new_date
 
 
-def save_to_csv(products, output_file, date_columns):
-    """Save products to CSV file with history columns"""
+def save_to_csv(products, output_file, old_date, new_date):
+    """Save products to CSV file"""
     if not products:
         print("⚠️  No active products to save")
         return
     
-    # Build fieldnames: Product Name, Warehouse, date columns..., Sold Products
-    fieldnames = ['Product Name', 'Warehouse'] + date_columns + ['Sold Products']
+    fieldnames = ['Product Name', 'Warehouse', old_date, new_date, 'Sold Products']
     
     with open(output_file, 'w', newline='', encoding='utf-8-sig') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -229,24 +188,24 @@ def main():
         print("   Please add another inventory HTML file to compare")
         return
     
-    # Use up to the last 7 files (or all if less than 7)
-    files_to_use = html_files[-7:] if len(html_files) >= 7 else html_files
+    # Use the 2 newest files (last 2 in the sorted list)
+    old_file = html_files[-2]  # Second newest (older)
+    new_file = html_files[-1]  # Newest
     
-    print(f"\n📁 Using {len(files_to_use)} file(s) for history:")
-    for file in files_to_use:
-        print(f"   - {file.name}")
+    print(f"\n📁 Auto-detected files:")
+    print(f"   OLD: {old_file.name}")
+    print(f"   NEW: {new_file.name}")
     print()
     
     # Generate output filename using the newest file's date
-    new_file = files_to_use[-1]
     new_date = extract_date_from_filename(new_file)
     output_file = script_dir / f"Stock_{new_date}.csv"
     
-    # Compare inventories with history
-    active_products, date_columns = compare_inventories(files_to_use)
+    # Compare inventories
+    active_products, old_date, new_date = compare_inventories(old_file, new_file)
     
     # Save to CSV
-    save_to_csv(active_products, output_file, date_columns)
+    save_to_csv(active_products, output_file, old_date, new_date)
     
     # Print summary
     print("\n" + "=" * 60)
@@ -254,11 +213,10 @@ def main():
     print("=" * 60)
     if active_products:
         print(f"Top 5 Best Sellers:")
-        newest_date = date_columns[-1]
         for i, product in enumerate(active_products[:5], 1):
             print(f"  {i}. {product['Product Name'][:50]}")
             print(f"     Warehouse: {product['Warehouse']}")
-            print(f"     Sold: {product['Sold Products']} | Remaining: {product[newest_date]}")
+            print(f"     Sold: {product['Sold Products']} | Remaining: {product[new_date]}")
             print()
     
     print("✨ Done! Open the CSV file to view all results.")

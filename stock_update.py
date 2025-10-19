@@ -37,9 +37,9 @@ def download_inventory():
 
 
 def compare_inventory():
-    """Run comparison script"""
+    """Run comparison script (daily snapshot)"""
     print("=" * 60)
-    print("📊 STEP 2: Comparing Inventory")
+    print("📊 STEP 2: Comparing Inventory (Daily)")
     print("=" * 60)
     
     try:
@@ -62,6 +62,35 @@ def compare_inventory():
         
     except Exception as e:
         print(f"\n❌ Comparison failed: {e}")
+        return False
+
+
+def generate_history():
+    """Generate 7-day history file"""
+    print("=" * 60)
+    print("📊 STEP 2b: Generating Stock History (7-day view)")
+    print("=" * 60)
+    
+    try:
+        # Run generate_history.py
+        script_path = Path(__file__).parent / "generate_history.py"
+        result = subprocess.run(
+            [sys.executable, str(script_path)],
+            capture_output=True,
+            text=True
+        )
+        
+        # Print the output
+        print(result.stdout)
+        
+        if result.returncode != 0:
+            print(f"⚠️  History generation had issues: {result.stderr}")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n⚠️  History generation failed: {e}")
         return False
 
 
@@ -150,10 +179,13 @@ def main():
         print("\n❌ FAILED at download step")
         sys.exit(1)
     
-    # Step 2: Compare
+    # Step 2: Compare (daily snapshot)
     if not compare_inventory():
         print("\n❌ FAILED at comparison step")
         sys.exit(1)
+    
+    # Step 2b: Generate history (7-day view, non-critical)
+    generate_history()
     
     # Step 3: Download Orders (non-critical, continues on failure)
     orders_downloaded = download_orders()
@@ -167,9 +199,10 @@ def main():
     print("✅ COMPLETE! Your stock report is ready")
     print("=" * 60)
     print()
-    print("📄 Check your Stock_*.csv file for today's results")
+    print("📄 Stock_*.csv - Today's snapshot (changes between yesterday and today)")
+    print("📄 Stock_History.csv - 7-day view (all products with activity this week)")
     if orders_downloaded:
-        print("📄 Check your Orders_Not_Available_*.csv for orders needing attention")
+        print("📄 Orders_Not_Available_*.csv - Orders needing attention")
     print()
 
 

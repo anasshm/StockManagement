@@ -236,7 +236,7 @@ class CODPartnerAutomation:
             raise
     
     def download_analytics(self, country="Saudi arabia", filename: str = None):
-        """Download product analytics for specified country"""
+        """Download product analytics for specified country with date range filter"""
         print(f"📊 Downloading analytics from {self.config.ANALYTICS_URL}")
         
         try:
@@ -312,6 +312,138 @@ class CODPartnerAutomation:
             except Exception as e:
                 print(f"⚠️  Could not change entries display: {e}")
                 print("   Continuing with default view...")
+            
+            # Set date range: 20 days ago to 10 days ago
+            print("📅 Setting date range (20 days ago to 10 days ago)...")
+            try:
+                from datetime import timedelta
+                
+                # Calculate dates
+                today = datetime.now()
+                start_date = today - timedelta(days=20)
+                end_date = today - timedelta(days=10)
+                
+                print(f"   Start: {start_date.strftime('%Y-%m-%d')} | End: {end_date.strftime('%Y-%m-%d')}")
+                
+                # Step 1: Click on the Filter button to open filter dialog
+                print("   Step 1: Opening filter dialog...")
+                self.page.click('button:has-text("Filter")', timeout=5000)
+                time.sleep(2)
+                print("   ✅ Filter dialog opened")
+                
+                # Step 2: Click on the daterange input inside the filter dialog
+                print("   Step 2: Clicking daterange input...")
+                self.page.click('input#daterange', timeout=5000)
+                time.sleep(1)
+                print("   ✅ Date dropdown opened")
+                
+                # Step 3: Click "Custom Range" directly
+                print("   Step 3: Clicking 'Custom Range'...")
+                self.page.click('text="Custom Range"', timeout=5000)
+                time.sleep(2)
+                print("   ✅ Custom range calendar opened")
+                
+                # Step 4: Select start date by clicking on the calendar
+                print(f"   Step 4: Selecting start date (day {start_date.day} in {start_date.strftime('%b')})...")
+                try:
+                    # Click the specific day in the calendar
+                    # Find calendar cells that aren't disabled and match our day
+                    self.page.evaluate(f"""
+                        () => {{
+                            // Find all calendar cells
+                            const cells = document.querySelectorAll('td.available');
+                            for (let cell of cells) {{
+                                if (cell.textContent.trim() === '{start_date.day}' && 
+                                    !cell.classList.contains('off')) {{
+                                    cell.click();
+                                    return true;
+                                }}
+                            }}
+                            return false;
+                        }}
+                    """)
+                    time.sleep(0.5)
+                    print(f"   ✅ Selected start date: {start_date.strftime('%Y-%m-%d')}")
+                except Exception as e:
+                    print(f"   ⚠️  Could not click start date: {e}")
+                
+                # Step 5: Select end date by clicking on the calendar
+                print(f"   Step 5: Selecting end date (day {end_date.day} in {end_date.strftime('%b')})...")
+                try:
+                    # Click the specific day in the calendar for end date
+                    # Need to find the second occurrence if different month
+                    self.page.evaluate(f"""
+                        () => {{
+                            // Find all calendar cells
+                            const cells = document.querySelectorAll('td.available');
+                            let found = false;
+                            for (let cell of cells) {{
+                                if (cell.textContent.trim() === '{end_date.day}' && 
+                                    !cell.classList.contains('off')) {{
+                                    // If same month as start date, skip first occurrence
+                                    if ({start_date.month} !== {end_date.month} || found) {{
+                                        cell.click();
+                                        return true;
+                                    }}
+                                    found = true;
+                                }}
+                            }}
+                            return false;
+                        }}
+                    """)
+                    time.sleep(0.5)
+                    print(f"   ✅ Selected end date: {end_date.strftime('%Y-%m-%d')}")
+                except Exception as e:
+                    print(f"   ⚠️  Could not click end date: {e}")
+                
+                # Step 6: Click first "Apply" button (in date picker)
+                print("   Step 6: Clicking first 'Apply' button...")
+                try:
+                    # Find and click the Apply button in the date picker popup
+                    apply_buttons = self.page.query_selector_all('button:has-text("Apply")')
+                    if len(apply_buttons) > 0:
+                        apply_buttons[0].click()
+                        time.sleep(2)
+                        print("   ✅ Clicked Apply in date picker")
+                except Exception as e:
+                    print(f"   ⚠️  Could not click first Apply: {e}")
+                
+                # Step 7: Try to click second "Apply" button if it exists (optional)
+                print("   Step 7: Checking for second 'Apply' button...")
+                try:
+                    # Wait a moment for the filter dialog
+                    time.sleep(1)
+                    # Try to find and click the main Apply button if still visible
+                    apply_buttons = self.page.query_selector_all('button:has-text("Apply")')
+                    if len(apply_buttons) > 0:
+                        # Check if button is visible
+                        if apply_buttons[-1].is_visible():
+                            apply_buttons[-1].click()
+                            time.sleep(2)
+                            print("   ✅ Clicked Apply in filter dialog")
+                        else:
+                            print("   ℹ️  Second Apply not visible (filter already applied)")
+                    else:
+                        print("   ℹ️  No second Apply button found (filter already applied)")
+                except Exception as e:
+                    print(f"   ℹ️  Filter already applied: {e}")
+                
+                # Wait for processing after date change
+                print("   ⏳ Waiting for data to reload with new date range...")
+                time.sleep(5)
+                
+                try:
+                    self.page.wait_for_selector('text="Processing..."', state='hidden', timeout=15000)
+                    print("   ✅ Data reloaded with new date range")
+                except:
+                    print("   Continuing...")
+                
+                time.sleep(3)
+                self.page.wait_for_load_state('networkidle', timeout=self.config.TIMEOUT)
+                
+            except Exception as e:
+                print(f"⚠️  Could not set date range: {e}")
+                print("   Continuing with current date range...")
             
             # Generate filename if not provided
             if not filename:
