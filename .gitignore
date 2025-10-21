@@ -35,3 +35,7 @@ Thumbs.db
 
 # Playwright browsers
 .playwright/
+
+# Trace files (recording/debugging artifacts)
+traces/
+*.zip

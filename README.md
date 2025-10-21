@@ -104,6 +104,33 @@ Top 5 Best Sellers:
 - **`compare_inventory.py`** - Compare only (no download)
 - **`daily_report.py`** - Legacy combined script
 
+## Recording & Replay System
+
+**New!** Debug automation issues by recording real browser actions.
+
+When automation fails to find elements you can see, use the recording system:
+
+```bash
+# 1. Record your actions
+python3 record_session.py
+
+# 2. Edit automation/analytics_recorded.py and paste the generated code
+
+# 3. Test the replay
+python3 replay_recorded_session.py
+
+# 4. View visual trace with screenshots
+python3 view_trace.py
+```
+
+See [RECORDING_GUIDE.md](RECORDING_GUIDE.md) for complete instructions.
+
+**Use cases:**
+- Debug date selection issues
+- Capture working element selectors
+- Create visual reference documentation
+- Test new workflows before automating
+
 ## Settings
 
 Edit `automation/config.py` to customize:
