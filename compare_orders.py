@@ -64,16 +64,22 @@ def parse_orders_html(html_file):
 
 def save_orders_to_csv(orders, output_file):
     """Save orders to CSV file"""
-    if not orders:
-        print("⚠️  No orders with 'Not Available' shipping status found")
-        return
-    
     with open(output_file, 'w', newline='', encoding='utf-8-sig') as f:
         fieldnames = ['Date', 'Reference', 'Link']
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         
         writer.writeheader()
-        writer.writerows(orders)
+        
+        if not orders:
+            # Create a row with a positive message when no orders need attention
+            writer.writerow({
+                'Date': '',
+                'Reference': 'Rest easy, all orders have shipping status available',
+                'Link': ''
+            })
+            print("✅ No orders with 'Not Available' status - All good!")
+        else:
+            writer.writerows(orders)
     
     print(f"💾 Saved results to: {output_file}")
 
